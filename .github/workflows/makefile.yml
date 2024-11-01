@@ -1,0 +1,41 @@
+name: Build iStoreOS for HIWIFI H5861
+
+on:
+  push:
+    branches:
+      - istoreos-22.03  # 在主分支推送时触发，也可以根据需要改为其他分支
+  workflow_dispatch:  # 手动触发构建
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Setup build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev make4.1+ perl python3.6+ rsync subversion unzip which
+
+      - name: Update and install feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure build
+        run: |
+          # 可以使用默认配置文件，也可以用自定义配置适配 HIWIFI H5861
+          make menuconfig
+          # 或者使用预设的配置文件，例如复制 .config 文件
+
+      - name: Build the firmware
+        run: make -j$(nproc)
+
+      - name: Upload firmware
+        if: success()
+        uses: actions/upload-artifact@v2
+        with:
+          name: firmware
+          path: bin/targets/*  # 上传生成的固件文件
